@@ -1,0 +1,66 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+//made by: 2cache
+
+enum
+{
+    BIT_3_MASK = 0x8,
+    BIT_2_MASK = 0xfb,
+    HASH = 63,
+    AT_SYMBOL = 0,
+    N_NUMS = '9' - '0' + 1,
+    ERROR_CODE = 64,
+    FIRST_STR_NUM = N_NUMS + 1,
+    FIRST_CAP_NUM = 'z' - 'a' + FIRST_STR_NUM + 1,
+};
+
+unsigned int
+from_ascii(unsigned int symbol)
+{
+    if (symbol >= 'a' && symbol <= 'z') {
+        return symbol - 'a' + FIRST_STR_NUM;
+    } else if (symbol >= 'A' && symbol <= 'Z') {
+        return symbol - 'A' + FIRST_CAP_NUM;
+    } else if (symbol >= '0' && symbol <= '9') {
+        return symbol - '0' + 1;
+    } else {
+        return ERROR_CODE;
+    }
+}
+
+char
+to_ascii(unsigned int por)
+{
+    if (por == HASH) {
+        return '#';
+    } else if (por == AT_SYMBOL) {
+        return '@';
+    } else if (por >= 1 && por <= N_NUMS) {
+        return por + '0' - 1;
+    } else if (por >= FIRST_STR_NUM && por <= FIRST_CAP_NUM - 1) {
+        return por + 'a' - FIRST_STR_NUM;
+    } else if (por >= FIRST_CAP_NUM && por <= HASH - 1) {
+        return por + 'A' - FIRST_CAP_NUM;
+    } else {
+        fprintf(stderr, "error\n");
+        exit(1);
+    }
+}
+
+int
+main(void)
+{
+    unsigned int portion;
+    while ((portion = getchar()) != EOF) {
+        portion = from_ascii(portion);
+        if (portion == ERROR_CODE) {
+            continue;
+        }
+        portion ^= BIT_3_MASK;
+        portion &= BIT_2_MASK;
+        putchar(to_ascii(portion));
+    }
+    return 0;
+}

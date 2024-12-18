@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//made by: 2cache
+
+void
+normalize_path(char *buf)
+{
+    if (!buf) {
+        return;
+    }
+    int len = 0;
+    char *buf_cpy = buf;
+    while (*buf_cpy) {
+        buf_cpy++;
+        len++;
+    }
+
+    int p1 = 0;
+    int p2 = 0;
+
+    while (p2 < len) {
+        int fl = 0;
+        if (buf[p2] == '/' && buf[p2 + 1] == '.') {
+            buf[p1] = '/';
+            if (p2 + 2 < len && buf[p2 + 2] == '.' && (buf[p2 + 3] == '/' || buf[p2 + 3] == '\0')) {
+                fl = 1;
+                p2 += 3;
+                int counter = 0;
+                while (p1 >= 0 && counter < 2) {
+                    if (buf[p1] == '/') {
+                        counter++;
+                    }
+                    p1--;
+                }
+                p1++;
+            } else if (buf[p2 + 2] == '\0' || buf[p2 + 2] == '/') {
+                fl = 1;
+                p2 += 2;
+            }
+        }
+        if (!fl) {
+            buf[p1] = buf[p2];
+            p2++;
+            p1++;
+        }
+    }
+    if (p1 == 0) {
+        buf[p1] = '/';
+        buf[p1 + 1] = '\0';
+    } else if (p1 > 1 && buf[p1 - 1] == '/') {
+        buf[p1 - 1] = '\0';
+    } else {
+        buf[p1] = '\0';
+    }
+}
+
+char *
+relativize_path(const char *path1, const char *path2)
+{
+    char temp[] = "../";
+    char *copy_path1 = strdup(path1);
+    char *copy_path2 = strdup(path2);
+    normalize_path(copy_path1);
+    normalize_path(copy_path2);
+
+    int l1 = strlen(copy_path1);
+    int l2 = strlen(copy_path2);
+
+    char *res = calloc(sizeof(*res), 2 * (l1 + l2) + 1);
+
+    int s_l = 0;
+    int counter1 = l1 - 1;
+
+    while (copy_path1[counter1] != '/') {
+        counter1--;
+    }
+    for (int i = 0; i <= counter1; i++) {
+        if (copy_path1[i] == '/') {
+            s_l = i;
+        }
+        if (copy_path1[i] != copy_path2[i]) {
+            if ((copy_path1[i] == 0 && copy_path2[i] == '/') || (copy_path1[i] == '/' && copy_path2 == 0)) {
+                s_l = i;
+            }
+            break;
+        }
+    }
+
+    int curr = 0;
+    for (int i = s_l; i < counter1; i++) {
+        if (copy_path1[i] == '/') {
+            for (int j = 0; j < sizeof(temp) - 1; j++) {
+                res[curr + j] = temp[j];
+            }
+            curr += sizeof(temp) - 1;
+        }
+    }
+
+    for (int i = s_l + 1; i <= l2; i++) {
+        res[curr] = copy_path2[i];
+        curr++;
+    }
+    int res_l = strlen(res);
+    if (res_l != 0 && res[res_l - 1] == '/') {
+        res[res_l - 1] = '\0';
+    }
+    if (curr <= 1) {
+        res[0] = '.';
+    }
+    free(copy_path1);
+    free(copy_path2);
+    return res;
+}

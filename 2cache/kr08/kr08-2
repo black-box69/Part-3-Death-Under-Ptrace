@@ -1,0 +1,30 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+
+int main(int argc, char *argv[]) {
+	if (argc < 1) {
+		exit(1);
+	}
+	unsigned long long res = 0;
+	unsigned long long mask = 1u;
+	int num = 0;
+	int fl = 0;
+	for (int i = 1; i < argc - 1; i+=2) {
+		errno =0;
+		char *eptr = NULL;
+		num = strtoll(argv[i+1], &eptr, 10);
+		if (errno || *eptr || eptr == argv[i+1] || (int) num != num) {
+			exit(1);
+		}
+		for (int k = 0; k < num; k++) {
+			eptr = NULL;
+			fl = (int) strtoll(argv[i], &eptr, 10);
+			if (fl) {
+				res |= mask;
+			}
+			mask <<= 1;
+		}
+	}
+	fprintf(stdout, "%lld", res);
+}

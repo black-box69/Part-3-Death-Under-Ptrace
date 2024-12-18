@@ -1,0 +1,108 @@
+#include <stdio.h>
+#include <ctype.h>
+
+//made by: 2cache
+
+const char ERR[] = "18446744073709551616";
+
+int
+main(void)
+{
+
+    int buf = getchar();
+    while (isspace(buf)) {
+        buf = getchar();
+        if (buf == EOF) {
+            return 0;
+        }
+    }
+    if (buf == EOF) {
+        return 0;
+    }
+
+    while (buf != '1' && buf != '0' && buf != 'a') {
+        buf = getchar();
+        if (buf == EOF) {
+            return 0;
+        }
+    }
+
+    int res_printed = 1;
+    long long int res = 0;
+    if (buf == '1') {
+        res = 1;
+        res_printed = 0;
+    } else if (buf == 'a') {
+        res = -1;
+        res_printed = 0;
+    } else if (buf == '0') {
+        res = 0;
+        res_printed = 0;
+    }
+
+    int overflow = 0;
+    while (1) {
+        buf = getchar();
+        if (buf == EOF) {
+            break;
+        }
+        if (isspace(buf) && !res_printed) {
+            if (overflow) {
+                printf("%s\n", ERR);
+                res_printed = 1;
+            } else {
+                printf("%lld\n", res);
+                res_printed = 1;
+            }
+            overflow = 0;
+            res = 0;
+            continue;
+        }
+        res_printed = 1;
+
+        if (res > 0) {
+            if (buf == '0') {
+                long long int res_buf = res;
+                overflow |= (int) __builtin_mul_overflow(res - 1, 3, &res_buf);
+                overflow |= (int) __builtin_add_overflow(res_buf, 3, &res);
+                res_printed = 0;
+            } else if (buf == '1') {
+                long long int res_buf = res;
+                overflow |= (int) __builtin_mul_overflow(res - 1, 3, &res_buf);
+                overflow |= (int) __builtin_add_overflow(res_buf, 4, &res);
+                res_printed = 0;
+            } else if (buf == 'a') {
+                long long res_buf = res;
+                overflow |= (int) __builtin_mul_overflow(res - 1, 3, &res_buf);
+                overflow |= (int) __builtin_add_overflow(res_buf, 2, &res);
+                res_printed = 0;
+            }
+        } else {
+            if (buf == '0') {
+                long long res_buf = res;
+                overflow |= (int) __builtin_mul_overflow(res + 1, 3, &res_buf);
+                overflow |= (int) __builtin_sub_overflow(res_buf, 3, &res);
+                res_printed = 0;
+            } else if (buf == '1') {
+                long long res_buf = res;
+                overflow |= (int) __builtin_mul_overflow(res + 1, 3, &res_buf);
+                overflow |= (int) __builtin_sub_overflow(res_buf, 2, &res);
+                res_printed = 0;
+            } else if (buf == 'a') {
+                long long res_buf = res;
+                overflow |= (int) __builtin_mul_overflow(res + 1, 3, &res_buf);
+                overflow |= (int) __builtin_sub_overflow(res_buf, 4, &res);
+                res_printed = 0;
+            }
+        }
+    }
+    if (!res_printed) {
+        if (overflow) {
+            printf("%s\n", ERR);
+            res_printed = 1;
+        } else {
+            printf("%lld\n", res);
+            res_printed = 1;
+        }
+    }
+}

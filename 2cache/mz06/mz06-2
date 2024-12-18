@@ -1,0 +1,53 @@
+//made by: 2cache
+
+void
+normalize_path(char *buf)
+{
+    if (!buf) {
+        return;
+    }
+    int len = 0;
+    char *buf_cpy = buf;
+    while (*buf_cpy) {
+        buf_cpy++;
+        len++;
+    }
+
+    int p1 = 0;
+    int p2 = 0;
+
+    while (p2 < len) {
+        int fl = 0;
+        if (buf[p2] == '/' && buf[p2 + 1] == '.') {
+            buf[p1] = '/';
+            if (p2 + 2 < len && buf[p2 + 2] == '.' && (buf[p2 + 3] == '/' || buf[p2 + 3] == '\0')) {
+                fl = 1;
+                p2 += 3;
+                int counter = 0;
+                while (p1 >= 0 && counter < 2) {
+                    if (buf[p1] == '/') {
+                        counter++;
+                    }
+                    p1--;
+                }
+                p1++;
+            } else if (buf[p2 + 2] == '\0' || buf[p2 + 2] == '/') {
+                fl = 1;
+                p2 += 2;
+            }
+        }
+        if (!fl) {
+            buf[p1] = buf[p2];
+            p2++;
+            p1++;
+        }
+    }
+    if (p1 == 0) {
+        buf[p1] = '/';
+        buf[p1 + 1] = '\0';
+    } else if (p1 > 1 && buf[p1 - 1] == '/') {
+        buf[p1 - 1] = '\0';
+    } else {
+        buf[p1] = '\0';
+    }
+}

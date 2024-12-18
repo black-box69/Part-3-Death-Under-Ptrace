@@ -1,0 +1,83 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+
+//made by: 2cache
+
+unsigned long long sum;
+unsigned long long curr_num;
+unsigned long long counter;
+
+enum
+{
+    SYS_BASE = 10,
+};
+
+int
+sq_sum(unsigned long long num, int mod)
+{
+    for (; counter <= num; counter++) {
+        sum += ((counter % mod) * (counter % mod)) % mod;
+        sum %= mod;
+    }
+    return (int) sum;
+}
+
+int
+main(int argc, char *argv[])
+{
+    if (argc < 4) {
+        fprintf(stderr, "not enough args\n");
+        exit(1);
+    }
+
+    char *endptr = NULL;
+    long mod = strtol(argv[3], &endptr, SYS_BASE);
+    errno = 0;
+    if (errno || *endptr || endptr == argv[3]) {
+        fprintf(stderr, "convertation error\n");
+        exit(1);
+    }
+
+    int file1 = open(argv[1], O_RDONLY);
+    if (file1 < 0) {
+        fprintf(stderr, "file opening error\n");
+        exit(1);
+    }
+
+    int file2 = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (file2 < 0) {
+        fprintf(stderr, "file opening error\n");
+        exit(1);
+    }
+
+    ssize_t flag = 0;
+    unsigned char buf = 0;
+    curr_num = 1;
+    counter = 1;
+    while ((flag = read(file1, &buf, sizeof(buf))) != 0) {
+        if (flag == -1) {
+            fprintf(stderr, "num reading error\n");
+            exit(1);
+        }
+        unsigned char mask = 1;
+        for (int i = 0; i < CHAR_BIT; i++) {
+            if (mask & buf) {
+                sq_sum(curr_num, (int) mod);
+                if (write(file2, &sum, sizeof(file1)) == -1) {
+                    fprintf(stderr, "file writing error\n");
+                    exit(1);
+                }
+            }
+            mask <<= 1;
+            curr_num++;
+        }
+    }
+    close(file1);
+    close(file2);
+}

@@ -1,0 +1,57 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/wait.h>
+
+//made by: 2cache
+
+int
+main(void)
+{
+    int pid;
+    int fds[2];
+    pipe(fds);
+    if ((pid = fork()) == 0) {
+        if ((pid = fork()) == 0) {
+            if ((pid = fork()) == 0) {
+                time_t tc = time(NULL);
+                struct tm t;
+                localtime_r(&tc, &t);
+                t.tm_isdst = -1;
+                close(fds[0]);
+                write(fds[1], &t.tm_mday, sizeof(t.tm_mday));
+                write(fds[1], &t.tm_mon, sizeof(t.tm_mon));
+                write(fds[1], &t.tm_year, sizeof(t.tm_year));
+                close(fds[1]);
+                _exit(0);
+            }
+            int res;
+            waitpid(pid, &res, 0);
+            if (WIFEXITED(res) && !WEXITSTATUS(res)) {
+                struct tm t_d;
+                read(fds[0], &t_d.tm_mday, sizeof(t_d.tm_mday));
+                printf("D:%d\n", t_d.tm_mday);
+                fflush(stdout);
+            }
+            _exit(0);
+        }
+        int res;
+        wait(&res);
+        if (WIFEXITED(res) && !WEXITSTATUS(res)) {
+            struct tm t_d;
+            read(fds[0], &t_d.tm_mon, sizeof(t_d.tm_mon));
+            printf("M:%d\n", t_d.tm_mon + 1);
+            fflush(stdout);
+        }
+        _exit(0);
+    }
+    int res;
+    wait(&res);
+    if (WIFEXITED(res) && !WEXITSTATUS(res)) {
+        struct tm t_d;
+        read(fds[0], &t_d.tm_year, sizeof(t_d.tm_year));
+        printf("Y:%d\n", t_d.tm_year + 1900);
+        fflush(stdout);
+    }
+    _exit(0);
+}

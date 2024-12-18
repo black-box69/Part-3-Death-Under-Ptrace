@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <limits.h>
+
+//made by: 2cache
+
+enum
+{
+    IN = 0,
+    OUT = 1,
+};
+
+const char *default_dir = "/tmp";
+const char *XDG = "XDG_RUNTIME_DIR";
+const char *TMPDIR = "TMPDIR";
+const char *black_box = "/dev/urand";
+const char *default_b = "1";
+
+extern char **environ;
+int
+main(int argc, char *argv[], char *environ[])
+{
+
+    char *tmp_route = getenv(XDG);
+    if (tmp_route == NULL || access(tmp_route, W_OK)) {
+        tmp_route = getenv(TMPDIR);
+        if (tmp_route == NULL || access(tmp_route, W_OK)) {
+            tmp_route = strdup(default_dir);
+        }
+    }
+
+    char script_path[PATH_MAX] = "";
+    int rand_fd = open(black_box, O_RDONLY);
+    unsigned rand_int;
+    read(rand_fd, &rand_int, sizeof(rand_int));
+
+    snprintf(script_path, sizeof(script_path), "%s/%uget_pwned.py", tmp_route, rand_int);
+    int fd = open(script_path, O_WRONLY | O_CREAT, 0700);
+    FILE *f = fdopen(fd, "w");
+    fprintf(f, "#!/usr/bin/env python3\nfrom os import remove\nfrom sys import argv\nprint(");
+    for (int i = 1; i < argc; i++) {
+        fprintf(f, "%s * ", argv[i]);
+    }
+    fprintf(f, "1)\nremove(argv[0])\n");
+    fclose(f);
+
+    dup2(IN, fd);
+
+    execl(script_path, script_path, NULL);
+    _exit(1);
+    return 0;
+}

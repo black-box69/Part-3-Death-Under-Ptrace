@@ -1,0 +1,69 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <wait.h>
+#include <stdlib.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
+
+//made by: 2cache
+
+int
+main(int argc, char *argv[])
+{
+    int nproc = (int) strtol(argv[1], NULL, 10);
+    key_t key = (key_t) strtol(argv[2], NULL, 10);
+    unsigned maxval = (unsigned) strtol(argv[3], NULL, 10);
+
+    int sem = semget(key, nproc, IPC_CREAT | 0600);
+
+    int shm = shmget(key, 2 * sizeof(int), IPC_CREAT | 0600);
+    int *p = shmat(shm, NULL, 0);
+
+    struct sembuf up = {0, 1, 0};
+    semop(sem, &up, 1);
+    p[0] = 0;
+    p[1] = 0;
+    struct sembuf buf;
+    for (int i = 1; i < nproc + 1; i++) {
+        int pid;
+        if (!(pid = fork())) {
+            buf.sem_num = i - 1;
+            buf.sem_op = -1;
+            buf.sem_flg = 0;
+            while (semop(sem, &buf, 1) >= 0) {
+
+                printf("%d %d %d\n", i, p[0], p[1]);
+                fflush(stdout);
+                fflush(stdout);
+                if ((++p[0]) > maxval) {
+                    semctl(sem, 0, IPC_RMID);
+                    // shmdt(p);
+                    shmctl(shm, IPC_RMID, NULL);
+                    break;
+                }
+                p[1] = i;
+                int ind = p[0] % nproc;
+                ind *= p[0];
+                ind %= nproc;
+                ind *= p[0];
+                ind %= nproc;
+                ind *= p[0];
+                ind %= nproc;
+                ind++;
+                // ind %= nproc;
+
+                semop(sem, (struct sembuf[]){{.sem_num = ind - 1, .sem_flg = 0, .sem_op = 1}}, 1);
+            }
+
+            shmdt(p);
+            _exit(0);
+        }
+    }
+    for (int i = 1; i < nproc + 1; i++) {
+        wait(NULL);
+    }
+    shmdt(p);
+}

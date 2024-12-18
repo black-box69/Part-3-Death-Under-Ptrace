@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+
+//made by: 2cache
+
+int
+main(int argc, char *argv[])
+{
+    int success_progs = 0;
+    for (int i = 1; i < argc; i++) {
+        int k = 0;
+        while (i < argc && argv[i][0] == 'p') {
+            int pid = fork();
+            if (!pid) {
+                execlp(argv[i] + 1, argv[i] + 1, NULL);
+                _exit(1);
+            } else {
+                k++;
+            }
+            i++;
+        }
+
+        for (int j = 0; j < k; j++) {
+            int res = 0;
+            if (wait(&res) == -1) {
+                continue;
+            }
+            if (WIFEXITED(res) && !WEXITSTATUS(res)) {
+                success_progs++;
+            }
+        }
+        if (i < argc && argv[i][0] == 's') {
+            int pid = fork();
+            if (!pid) {
+                execlp(argv[i] + 1, argv[i] + 1, NULL);
+                _exit(1);
+            } else {
+                int res = 0;
+                waitpid(pid, &res, 0);
+                if (WIFEXITED(res) && !WEXITSTATUS(res)) {
+                    success_progs++;
+                }
+            }
+        }
+    }
+    printf("%d\n", success_progs);
+}

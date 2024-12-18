@@ -1,0 +1,121 @@
+#include <stdio.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <limits.h>
+
+//made by: 2cache
+
+void
+oc_everything(FILE **ch12, FILE **ch21, int *fds12, int *fds21, int mode)
+{
+    if (mode) {
+        ch12[0] = fdopen(fds12[0], "r");
+        ch21[0] = fdopen(fds21[0], "r");
+        ch12[1] = fdopen(fds12[1], "w");
+        ch21[1] = fdopen(fds21[1], "w");
+    } else {
+        close(fds12[1]);
+        close(fds21[1]);
+        close(fds12[0]);
+        close(fds21[0]);
+    }
+}
+
+int
+main(int argc, char **argv)
+{
+    int fds12[2];
+    int fds21[2];
+    pipe(fds12);
+    pipe(fds21);
+
+    FILE *ch12[2];
+    FILE *ch21[2];
+
+    oc_everything(ch12, ch21, fds12, fds21, 1);
+
+    int n;
+    sscanf(argv[1], "%d", &n);
+
+    int pid1;
+    int pid2;
+    if ((pid1 = fork()) == 0) {
+        close(fds12[0]);
+        close(fds21[1]);
+        int i = 0;
+        if (n == 1) {
+            close(fds12[0]);
+            close(fds21[1]);
+            _exit(0);
+        }
+        while (i < n) {
+            i++;
+            if (i >= n) {
+                fflush(ch21[1]);
+                fflush(ch12[0]);
+                break;
+            }
+            printf("1 %d\n", i);
+            fflush(stdout);
+            if (fwrite(&i, sizeof(i), 1, ch12[1]) == -1) {
+                fflush(ch12[1]);
+                break;
+            }
+            fflush(ch12[1]);
+            if (fread(&i, sizeof(i), 1, ch21[0]) == -1) {
+                fflush(ch21[0]);
+                break;
+            }
+            fflush(ch21[0]);
+        }
+        close(fds12[0]);
+        close(fds21[1]);
+        _exit(0);
+    }
+
+    if ((pid2 = fork()) == 0) {
+        close(fds21[0]);
+        close(fds12[1]);
+        int i = -1;
+        if (n == 1) {
+            close(fds21[1]);
+            close(fds12[0]);
+            _exit(0);
+        }
+
+        while (i < n) {
+            if (fread(&i, sizeof(i), 1, ch12[0]) == -1) {
+                fflush(ch12[0]);
+                break;
+            }
+            fflush(ch12[0]);
+            i++;
+            if (i >= n) {
+                fflush(ch21[1]);
+                fflush(ch12[0]);
+                break;
+            }
+            printf("2 %d\n", i);
+            fflush(stdout);
+            if (fwrite(&i, sizeof(i), 1, ch21[1]) == -1) {
+                fflush(ch21[1]);
+                break;
+            }
+            fflush(ch21[1]);
+        }
+        close(fds21[1]);
+        close(fds12[0]);
+        _exit(0);
+    }
+    oc_everything(ch12, ch21, fds12, fds21, 0);
+    int res;
+    wait(&res);
+    wait(&res);
+    printf("Done\n");
+    fflush(stdout);
+    _exit(0);
+}

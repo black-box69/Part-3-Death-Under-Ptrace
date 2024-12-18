@@ -1,0 +1,57 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+enum
+{
+    TOP_EDGE_OF_N = 10,
+    BOT_EDGE_OF_N = 0
+};
+
+void
+f(int i, int n, int *per, int *used)
+{
+    if (i == n) {
+        for (int j = 0; j < n; j++) {
+            printf("%d", per[j]);
+        }
+        printf("\n");
+    } else {
+        for (int j = 0; j < n; j++) {
+            if (!used[j]) {
+                per[i] = j + 1;
+                used[j] = 1;
+                f(i + 1, n, per, used);
+                used[j] = 0;
+            }
+        }
+    }
+}
+
+int
+main(void)
+{
+    int n = 0;
+    if (scanf("%d", &n) != 1) {
+        fprintf(stderr, "error\n");
+        exit(1);
+    }
+    if (n >= TOP_EDGE_OF_N || n <= BOT_EDGE_OF_N) {
+        fprintf(stderr, "invalid argument\n");
+        exit(1);
+    }
+    int *per = calloc(n, sizeof(*per));
+    if (!per) {
+        fprintf(stderr, "memory err\n");
+        exit(1);
+    }
+    int *used = calloc(n, sizeof(*used));
+    if (!used) {
+        fprintf(stderr, "memory err\n");
+        exit(1);
+    }
+    f(0, n, per, used);
+    free(per);
+    free(used);
+}

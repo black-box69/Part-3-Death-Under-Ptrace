@@ -1,0 +1,103 @@
+#include <stdio.h>
+#include <time.h>
+#include <string.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+enum
+{
+    MOON_YEAR = 2021,
+    MOON_MDAY = 26,
+    MOON_MONTH = 4,
+    MOON_HOUR = 11,
+    MOON_MINUTE = 14,
+    CYCLE_MOON_DAY = 29,
+    CYCLE_MOON_HOUR = 12,
+    CYCLE_MOON_MINUTE = 44,
+    MOON_DELTA = CYCLE_MOON_MINUTE + (CYCLE_MOON_HOUR + CYCLE_MOON_DAY * 24) * 60,
+    MIN_YEAR = 1900,
+    DAYS_TO_GO = 256,
+    MAX_MDAY = 31,
+    MAX_YDAY = 365,
+    MAX_MON = 11,
+};
+
+int
+main(void)
+{
+    int year;
+    if (fscanf(stdin, "%d", &year) != 1) {
+        exit(1);
+    }
+    year -= MIN_YEAR;
+
+    struct tm moon;
+    memset(&moon, 0, sizeof(moon));
+    moon.tm_year = MOON_YEAR - MIN_YEAR;
+    moon.tm_mday = MOON_MDAY;
+    moon.tm_mon = MOON_MONTH;
+    moon.tm_yday = MOON_YEAR;
+    moon.tm_hour = MOON_HOUR;
+    moon.tm_min = MOON_MINUTE;
+    moon.tm_isdst = -1;
+    mktime(&moon);
+
+    int delta = (year >= moon.tm_year) ? 1 : -1;
+
+    delta *= MOON_DELTA; // in minutes!!!
+
+    while (year != moon.tm_year) {
+        moon.tm_min += delta;
+        moon.tm_isdst = -1;
+        mktime(&moon);
+    }
+
+    if (delta > 0) {
+        while (1) {
+            if (moon.tm_yday >= 255) {
+                break;
+            }
+            moon.tm_min += delta;
+            moon.tm_isdst = -1;
+            mktime(&moon);
+        }
+    } else if (delta < 0) {
+        int buf_year_day = MAX_YDAY;
+        int buf_mday = MAX_MDAY;
+        int buf_month = MAX_MON;
+        while (moon.tm_yday >= 255) {
+            if (moon.tm_yday < buf_year_day) {
+                buf_year_day = moon.tm_yday;
+                buf_mday = moon.tm_mday;
+                buf_month = moon.tm_mon;
+            }
+            moon.tm_min += delta;
+            moon.tm_isdst = -1;
+            mktime(&moon);
+        }
+        moon.tm_mday = buf_mday;
+        moon.tm_yday = buf_year_day;
+        moon.tm_mon = buf_month;
+    }
+    mktime(&moon);
+
+    mktime(&moon);
+
+    // printf("%04d-%02d-%02d\n", moon.tm_year + MIN_YEAR, moon.tm_mon + 1, moon.tm_mday);
+    moon.tm_mday++;
+    moon.tm_isdst = -1;
+    mktime(&moon);
+
+    while (moon.tm_wday != 1) {
+        moon.tm_mday++;
+        moon.tm_isdst = -1;
+        mktime(&moon);
+    }
+
+    moon.tm_mday += 21;
+    moon.tm_isdst = -1;
+    mktime(&moon);
+
+    printf("%04d-%02d-%02d\n", moon.tm_year + MIN_YEAR, moon.tm_mon + 1, moon.tm_mday);
+}

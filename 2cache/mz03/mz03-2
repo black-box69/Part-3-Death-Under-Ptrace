@@ -1,0 +1,37 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+
+//made by: 2cache
+
+enum
+{
+    SYS_BASE = 10,
+};
+
+int
+main(int argc, char *argv[])
+{
+    char *endptr = NULL;
+    long pos_sum = 0;
+    long neg_sum = 0;
+
+    for (int i = 1; i < argc; i++) {
+        errno = 0;
+        long buf = strtol(argv[i], &endptr, SYS_BASE);
+        if (errno || *endptr || endptr == argv[i] || (int) buf != buf) {
+            fprintf(stderr, "converting error\n");
+            exit(1);
+        }
+        if (*endptr) {
+            fprintf(stderr, "not correct number\n");
+            exit(1);
+        }
+        if (buf > 0) {
+            pos_sum += buf;
+        } else {
+            neg_sum += buf;
+        }
+    }
+    fprintf(stdout, "%ld\n%ld\n", pos_sum, neg_sum);
+}

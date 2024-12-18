@@ -1,0 +1,41 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+enum
+{
+    USER_BASE = 8,
+};
+
+void
+convert_per(unsigned long num, char *place_for_string)
+{
+    char sample[] = "rwxrwxrwx";
+    unsigned long mask = 1;
+    for (int j = 0; j < sizeof(sample) - 1; j++) {
+        if (num & (mask << j)) {
+            place_for_string[USER_BASE - j] = sample[USER_BASE - j];
+        }
+    }
+}
+
+int
+main(int argc, char *argv[])
+{
+    if (argc < 1) {
+        fprintf(stderr, "not enough args\n");
+        exit(1);
+    }
+    for (int i = 1; i < argc; i++) {
+        char *endptr = NULL;
+        unsigned long num_per = strtoul(argv[i], &endptr, USER_BASE);
+        if (*endptr || endptr == argv[i] || num_per > 777) {
+            fprintf(stderr, "not a number\n");
+        } else {
+            char str_per[] = "---------";
+            convert_per(num_per, str_per);
+            printf("%s\n", str_per);
+        }
+    }
+}

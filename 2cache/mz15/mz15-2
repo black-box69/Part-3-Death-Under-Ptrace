@@ -1,0 +1,82 @@
+#include <signal.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <wait.h>
+#include <fcntl.h>
+
+//made by: 2cache
+
+int p = 0;
+unsigned char bu = 0;
+
+void
+handler(int sig, siginfo_t *info, void *context)
+{
+    int pid = getpid();
+    if (info != NULL) {
+        pid = info->si_pid;
+    }
+    if (sig == SIGIO) {
+        _exit(0);
+    } else if (sig == SIGUSR1) {
+        p++;
+        if (p == 8) {
+            printf("%c", (unsigned char) bu);
+            fflush(stdout);
+            bu = 0;
+            p = 0;
+        }
+        kill(pid, SIGALRM);
+    } else if (sig == SIGUSR2) {
+        bu |= (1u << (7 - p));
+        p++;
+        if (p == 8) {
+            printf("%c", (unsigned char) bu);
+            fflush(stdout);
+            bu = 0;
+            p = 0;
+        }
+        kill(pid, SIGALRM);
+    }
+}
+
+int
+main(int argc, char *argv[])
+{
+
+    int pid2;
+    if ((pid2 = fork()) == 0) {
+        struct sigaction s = {.sa_sigaction = handler, .sa_flags = SA_SIGINFO};
+        sigaction(SIGUSR1, &s, NULL);
+        sigaction(SIGIO, &s, NULL);
+        sigaction(SIGUSR2, &s, NULL);
+        while (1) {
+            pause();
+        }
+        _exit(0);
+    }
+    int pid1;
+    if ((pid1 = fork()) == 0) { // sender
+        struct sigaction s = {.sa_sigaction = handler, .sa_flags = SA_SIGINFO};
+        sigaction(SIGALRM, &s, NULL);
+        int fd = open(argv[1], O_RDONLY);
+        unsigned char buf = 0;
+        while (read(fd, &buf, 1) == 1) {
+            for (int i = 7; i >= 0; i--) {
+                if (1u & ((unsigned char) buf >> i)) {
+                    kill(pid2, SIGUSR2);
+                } else {
+                    kill(pid2, SIGUSR1);
+                }
+                pause();
+            }
+        }
+        close(fd);
+        kill(pid2, SIGIO);
+        _exit(0);
+    }
+
+    wait(NULL);
+    wait(NULL);
+}

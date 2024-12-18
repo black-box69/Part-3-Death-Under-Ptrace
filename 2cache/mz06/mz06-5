@@ -1,0 +1,192 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <limits.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
+//made by: 2cache
+
+const char CURR_DIR[] = ".";
+const char PAR_DIR[] = "..";
+
+ssize_t
+getcwd2(int fd, char *buf, size_t size)
+{
+
+    char full_path[PATH_MAX] = {0};
+    DIR *cur_dir_d = opendir(CURR_DIR);
+    if (cur_dir_d == NULL) {
+        return -1;
+    }
+    int curr_dir_fd = dirfd(cur_dir_d);
+    if (curr_dir_fd == -1) {
+        return -1;
+    }
+
+    errno = 0;
+    if (fchdir(fd) == -1 || errno) {
+        if (closedir(cur_dir_d) == -1) {
+            return -1;
+        }
+        return -1;
+    }
+
+    struct stat stbuf;
+    if (stat(CURR_DIR, &stbuf) == -1) {
+        errno = 0;
+        if (fchdir(curr_dir_fd) == -1 || errno) {
+            return -1;
+        }
+
+        if (closedir(cur_dir_d) == -1) {
+            return -1;
+        }
+        return -1;
+    }
+    int curr_ino = stbuf.st_ino;
+    if (stat(PAR_DIR, &stbuf) == -1) {
+        errno = 0;
+        if (fchdir(curr_dir_fd) == -1 || errno) {
+            return -1;
+        }
+
+        if (closedir(cur_dir_d) == -1) {
+            return -1;
+        }
+        return -1;
+    }
+    int parent_ino = stbuf.st_ino;
+
+    while (curr_ino != parent_ino) {
+        if (chdir(PAR_DIR) == -1) {
+            errno = 0;
+            if (fchdir(curr_dir_fd) == -1 || errno) {
+                return -1;
+            }
+
+            if (closedir(cur_dir_d) == -1) {
+                return -1;
+            }
+            return -1;
+        }
+        DIR *new_dir = opendir(CURR_DIR);
+        if (new_dir == NULL) { //???
+            if (chdir(PAR_DIR) == -1) {
+                errno = 0;
+                if (fchdir(curr_dir_fd) == -1 || errno) {
+                    return -1;
+                }
+
+                if (closedir(cur_dir_d) == -1) {
+                    return -1;
+                }
+                return -1;
+            }
+            errno = 0;
+            if (fchdir(curr_dir_fd) == -1 || errno) {
+                return -1;
+            }
+
+            if (closedir(cur_dir_d) == -1) {
+                return -1;
+            }
+            return -1;
+        }
+        struct dirent *dd;
+        while ((dd = readdir(new_dir)) != 0) {
+            if (dd == NULL) {
+                errno = 0;
+                if (fchdir(curr_dir_fd) == -1 || errno) {
+                    return -1;
+                }
+
+                if (closedir(cur_dir_d) == -1) {
+                    return -1;
+                }
+                return -1;
+            }
+            int buf_ino = dd->d_ino;
+            if (buf_ino == curr_ino) {
+                char *buf_kos;
+                buf_kos = strdup(full_path);
+                if (buf_kos == NULL) {
+                    errno = 0;
+                    if (fchdir(curr_dir_fd) == -1 || errno) {
+                        return -1;
+                    }
+
+                    if (closedir(cur_dir_d) == -1) {
+                        return -1;
+                    }
+                    return -1;
+                }
+                if (snprintf(full_path, sizeof(full_path), "%s/%s", dd->d_name, buf_kos) < 0) {
+                    errno = 0;
+                    if (fchdir(curr_dir_fd) == -1 || errno) {
+                        return -1;
+                    }
+
+                    if (closedir(cur_dir_d) == -1) {
+                        return -1;
+                    }
+                    return -1;
+                }
+                free(buf_kos);
+                if (stat(PAR_DIR, &stbuf) == -1) {
+                    errno = 0;
+                    if (fchdir(curr_dir_fd) == -1 || errno) {
+                        return -1;
+                    }
+
+                    if (closedir(cur_dir_d) == -1) {
+                        return -1;
+                    }
+                    return -1;
+                }
+                curr_ino = parent_ino;
+                parent_ino = stbuf.st_ino;
+                break;
+            }
+        }
+        if (closedir(new_dir) == -1) {
+            errno = 0;
+            if (fchdir(curr_dir_fd) == -1 || errno) {
+                return -1;
+            }
+
+            if (closedir(cur_dir_d) == -1) {
+                return -1;
+            }
+            return -1;
+        }
+    }
+
+    errno = 0;
+    if (fchdir(curr_dir_fd) == -1 || errno) {
+        return -1;
+    }
+
+    if (closedir(cur_dir_d) == -1) {
+        return -1;
+    }
+
+    if (strnlen(full_path, PATH_MAX) > 0) {
+        full_path[strnlen(full_path, PATH_MAX) - 1] = '\0';
+    }
+    if (size == 0) {
+        return strlen(full_path) + 1;
+    }
+    if (snprintf(buf, size, "/%s", full_path) < 0) {
+        return -1;
+    }
+    ssize_t res = strlen(full_path) + 1; // added /
+    if (res < 0) {
+        return -1;
+    }
+    return res;
+}

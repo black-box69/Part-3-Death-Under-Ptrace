@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+int
+main()
+{
+    int pid;
+    int fds[2];
+    pipe(fds);
+    int n;
+    if ((pid = fork()) == 0) {
+        if ((pid = fork()) == 0) {
+            close(fds[1]);
+            int k;
+            long long int sum = 0;
+            while (read(fds[0], &k, sizeof(k)) > 0) {
+                sum += k;
+            }
+            close(fds[0]);
+            printf("%lld\n", sum);
+            fflush(stdout);
+            exit(0);
+        }
+        close(fds[1]);
+        close(fds[0]);
+        wait(NULL);
+        exit(0);
+    } else {
+        close(fds[0]);
+        while (scanf("%d", &n) == 1) {
+            write(fds[1], &n, sizeof(n));
+        }
+        close(fds[1]);
+        wait(NULL);
+    }
+    exit(0);
+}

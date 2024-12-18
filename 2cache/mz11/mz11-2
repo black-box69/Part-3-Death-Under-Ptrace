@@ -1,0 +1,28 @@
+#include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+
+//made by: 2cache
+
+int
+main(void)
+{
+    int pid = fork();
+    fflush(stdout);
+    if (pid == 0) {
+        pid = fork();
+        fflush(stdout);
+        if (pid == 0) {
+            printf("3");
+            exit(0);
+        }
+        wait(NULL);
+        printf(" 2");
+        exit(0);
+    }
+    wait(NULL);
+    printf(" 1\n");
+    exit(0);
+}

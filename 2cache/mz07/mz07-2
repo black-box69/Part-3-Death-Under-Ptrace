@@ -1,0 +1,52 @@
+#include <time.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+enum
+{
+    SYS_BASE = 10,
+    MIN_YEAR = 1900,
+    THURSDAY = 4,
+    WEEK_DAYS = 7,
+};
+
+int
+main(void)
+{
+    int year;
+    if (fscanf(stdin, "%d", &year) != 1) {
+        exit(1);
+    }
+
+    struct tm tt;
+    memset(&tt, 0, sizeof(tt));
+    tt.tm_year = year - MIN_YEAR;
+    tt.tm_mday = 1;
+    tt.tm_isdst = -1;
+    mktime(&tt);
+    tt.tm_isdst = -1;
+
+    int good_wed = 0;
+    while (tt.tm_wday != THURSDAY) {
+        tt.tm_isdst = -1;
+        tt.tm_mday++;
+        mktime(&tt);
+    }
+    int curr_mon = tt.tm_mon;
+    for (; tt.tm_year == (year - MIN_YEAR); tt.tm_mday += WEEK_DAYS, mktime(&tt), good_wed ^= 1) {
+
+        if (curr_mon != tt.tm_mon) {
+            good_wed = 0;
+            curr_mon = tt.tm_mon;
+        }
+
+        tt.tm_isdst = -1;
+        if (good_wed && tt.tm_mday % 3 != 0) {
+            printf("%d %d\n", tt.tm_mon + 1, tt.tm_mday);
+        }
+    }
+}

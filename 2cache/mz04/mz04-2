@@ -1,0 +1,70 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
+//made by: 2cache
+
+enum
+{
+    SYS_BASE = 10,
+    MIN_ARGS = 3,
+};
+
+int
+main(int argc, char *argv[])
+{
+    if (argc != MIN_ARGS) {
+        fprintf(stderr, "few arguments\n");
+        exit(1);
+    }
+    char *endptr = NULL;
+    long n = strtol(argv[2], &endptr, SYS_BASE);
+    errno = 0;
+    if (errno || *endptr || endptr == argv[2]) {
+        fprintf(stderr, "convertation error\n");
+        exit(1);
+    }
+    if (n > 1) {
+        double prev = 0;
+        double curr = 0;
+        ssize_t f = open(argv[1], O_RDWR, 0666);
+        if (f == EOF) {
+            fprintf(stderr, "couldn't read file\n");
+            exit(1);
+        }
+        int flag = read(f, &prev, sizeof(curr));
+        if (flag == 0) {
+            exit(0);
+        } else if (flag == -1) {
+            fprintf(stderr, "file reading error\n");
+            exit(1);
+        }
+        int i = 1;
+        while (i < n) {
+            flag = read(f, &curr, sizeof(curr));
+            if (!flag) {
+                close(f);
+                exit(0);
+            }
+            if (flag == -1) {
+                close(f);
+                exit(1);
+            }
+            if (lseek(f, -sizeof(curr), SEEK_CUR) == -1) {
+                fprintf(stderr, "not found\n");
+                exit(1);
+            }
+            curr = curr - prev;
+            if (write(f, &curr, sizeof(curr)) == -1) {
+                fprintf(stderr, "file writing error\n");
+                exit(1);
+            }
+            prev = curr;
+            i++;
+        }
+        close(f);
+    }
+    return 0;
+}

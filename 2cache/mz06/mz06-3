@@ -1,0 +1,39 @@
+#include <stdio.h>
+
+//made by: 2cache
+
+struct s1
+{
+    char f1;
+    long long f2;
+    char f3;
+};
+
+struct s2
+{
+    long long f2;
+    char f1;
+    char f3;
+};
+
+size_t
+compactify(void *ptr, size_t size)
+{
+    if (!size) {
+        return size;
+    }
+
+    struct s1 old_el;
+    struct s2 *new_el;
+
+    size_t new_size = 0;
+
+    for (int i = 0, j = 0; i < size; i += sizeof(old_el), j += sizeof(*new_el), new_size += sizeof(*new_el)) {
+        old_el = *(struct s1 *) (ptr + i);
+        new_el = (struct s2 *) (ptr + j);
+        new_el->f1 = old_el.f1;
+        new_el->f2 = old_el.f2;
+        new_el->f3 = old_el.f3;
+    }
+    return new_size;
+}

@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//made by: 2cache
+
+const char sample[] = "rwxrwxrwx";
+
+int
+parse_rwx_permissions(const char *str)
+{
+    if (str == NULL) {
+        return -1;
+    }
+    int size_sample = sizeof(sample) - 1;
+    int size_str = strlen(str);
+    if (size_sample != size_str) {
+        return -1;
+    }
+    unsigned num = 0;
+    unsigned mask = 1;
+    for (int i = size_str - 1; i >= 0; i--) {
+        if (str[i] == sample[i]) {
+            num |= mask;
+        } else if (str[i] != '-') {
+            return -1;
+        }
+        mask <<= 1;
+    }
+    return num;
+}

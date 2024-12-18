@@ -1,0 +1,102 @@
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+enum
+{
+    SIZE_CHAR = 8,
+    SIZEOF_CHAR = 1,
+    GREATEST_BIT_MASK = 0x80,
+};
+
+int
+main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        exit(1);
+    }
+    struct stat st;
+    stat(argv[1], &st);
+    int fd = open(argv[1], O_RDWR, 0666);
+    if (fd == -1) {
+        exit(1);
+    }
+
+    long long bytes = st.st_size;
+    long long size = bytes * 8;
+
+    int x = 0;
+
+    while (scanf("%d", &x) != -1) {
+        if (x > 0) {
+            if (x <= size) {
+                int res = lseek(fd, ((x - 1) / 8), SEEK_SET);
+                if (res == -1) {
+                    exit(1);
+                }
+                unsigned char mask = 0;
+                int count = 0;
+                while ((count = read(fd, &mask, sizeof(mask))) != SIZEOF_CHAR) {
+                    if (count == -1) {
+                        exit(1);
+                    }
+                }
+                if (x % 8 == 0) {
+                    mask |= GREATEST_BIT_MASK;
+                } else {
+                    mask |= (unsigned char) 1u << ((x % 8) - 1);
+                }
+                count = 0;
+                res = lseek(fd, ((x - 1) / 8), SEEK_SET);
+                if (res == -1) {
+                    exit(1);
+                }
+                while ((count = write(fd, &mask, sizeof(mask))) != SIZEOF_CHAR) {
+                    if (count == -1) {
+                        exit(1);
+                    }
+                }
+            }
+            continue;
+        } else if (x < 0) {
+            x = -x;
+            if (x <= size) {
+                int res = lseek(fd, ((x - 1) / 8), SEEK_SET);
+                if (res == -1) {
+                    exit(1);
+                }
+                unsigned char mask = 0;
+                int count = 0;
+                while ((count = read(fd, &mask, sizeof(mask))) != SIZEOF_CHAR) {
+                    if (count == -1) {
+                        exit(1);
+                    }
+                }
+                if (x % 8 == 0) {
+                    mask &= ~GREATEST_BIT_MASK;
+                } else {
+                    mask &= ~((unsigned char) 1u << ((x % 8) - 1));
+                }
+                count = 0;
+                res = lseek(fd, ((x - 1) / 8), SEEK_SET);
+                if (res == -1) {
+                    exit(1);
+                }
+                while ((count = write(fd, &mask, sizeof(mask))) != SIZEOF_CHAR) {
+                    if (count == -1) {
+                        exit(1);
+                    }
+                }
+            }
+            continue;
+        }
+    }
+    if (close(fd) == -1) {
+        exit(1);
+    }
+}

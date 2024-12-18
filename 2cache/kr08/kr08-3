@@ -1,0 +1,53 @@
+#include <dirent.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <limits.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/types.h>
+
+
+int main(int argc, char *argv[]) {
+	struct stat stbuf;
+	char buf[PATH_MAX] = {0};
+	char path[PATH_MAX] = {0};
+	strcpy(buf, argv[1]);
+	lstat(buf, &stbuf);
+	while (S_ISREG(stbuf.st_mode) && !S_ISLNK(stbuf.st_mode) && !access(buf, R_OK) && (stbuf.st_mode & 01000)) {
+		FILE * f  = fopen(buf, "r");
+		fscanf(f, "%s", path);
+		//strncat(argv[1], buf, strlen(buf) + 1);//???
+		strcpy(buf, path);
+		lstat(buf, &stbuf);
+	}
+	if (S_ISDIR(stbuf.st_mode) && !S_ISLNK(stbuf.st_mode)) {
+		size_t size = 0;
+		DIR *d = opendir(buf);
+		struct dirent *dd;
+		while ((dd = readdir(d)) != 0) {
+			if (!strcmp(dd->d_name, ".") || !strcmp(dd->d_name, "..")) {
+				continue;
+			}
+			char *path1 = strdup(buf);
+			snprintf(buf, PATH_MAX, "%s/%s", path, dd->d_name); //
+			free(path1);
+			//printf("|>>%s", buf);
+			stat(buf, &stbuf);
+			if (!S_ISDIR(stbuf.st_mode) && S_ISREG(stbuf.st_mode) && !access(buf, X_OK)) {
+				//printf("|>>%s %ld\n", buf, stbuf.st_size);
+				size += stbuf.st_size;
+			}
+		}
+		printf("%ld\n", size);
+		closedir(d);
+		return 0;
+	}
+	else {
+		stat(buf, &stbuf);
+		printf("%ld\n", stbuf.st_size);
+	}
+}
+

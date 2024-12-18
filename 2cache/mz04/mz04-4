@@ -1,0 +1,105 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <linux/limits.h>
+#include <sys/stat.h>
+
+//made by: 2cache
+
+struct Node
+{
+    int32_t key;
+    int32_t left_idx;
+    int32_t right_idx;
+};
+
+off_t
+fsize(const char *filename)
+{
+    struct stat st;
+    // uint8_t buf[PATH_MAX] = {0};
+    if (stat(filename, &st) == 0) {
+        return st.st_size;
+    } else {
+        return -1;
+    }
+}
+
+int32_t
+read_int(uint8_t buf[4])
+{
+    uint32_t new_num = 0;
+    new_num = buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
+    return new_num;
+}
+
+void
+read_node(struct Node *node, int fd, int32_t offset)
+{
+    uint8_t buf[12];
+    if (lseek(fd, offset * sizeof(buf), SEEK_SET) == -1) {
+        fprintf(stderr, "can't seek in this file\n");
+        exit(1);
+    }
+    int32_t val;
+    if ((val = read(fd, buf, sizeof(buf))) == -1) {
+        fprintf(stderr, "file reading error\n");
+        exit(1);
+    }
+    int b = 0;
+    while (val < sizeof(buf)) {
+        b = read(fd, buf + val, sizeof(buf) - val);
+        if (b == -1) {
+            exit(1);
+        }
+        val += b;
+    }
+    node->key = read_int(&buf[0]);
+    node->left_idx = read_int(&buf[4]);
+    node->right_idx = read_int(&buf[8]);
+}
+
+void
+dfs(int32_t node_indx, struct Node *buf_node, int fd)
+{
+    read_node(buf_node, fd, node_indx);
+    if (buf_node->right_idx != 0) {
+        dfs(buf_node->right_idx, buf_node, fd);
+    }
+    read_node(buf_node, fd, node_indx);
+    fprintf(stdout, "%d\n", buf_node->key);
+    if (buf_node->left_idx != 0) {
+        dfs(buf_node->left_idx, buf_node, fd);
+    }
+}
+
+int
+main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        fprintf(stderr, "not enough args\n");
+        exit(1);
+    }
+
+    int size = fsize(argv[1]);
+
+    if (size == 0) {
+        exit(0);
+    } else if (size == -1) {
+        fprintf(stderr, "file error\n");
+        exit(1);
+    }
+
+    int fd = open(argv[1], O_RDONLY);
+    if (fd < 0) {
+        fprintf(stderr, "file opening error\n");
+        exit(1);
+    }
+    struct Node buf_node = {0};
+    dfs(0, &buf_node, fd);
+    close(fd);
+    return 0;
+}

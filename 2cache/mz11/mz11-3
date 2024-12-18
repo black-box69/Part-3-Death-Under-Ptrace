@@ -1,0 +1,33 @@
+#include <stdio.h>
+#include <pthread.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+//made by: 2cache
+
+int
+main(void)
+{
+    int i = 0;
+    int pid;
+
+    for (; i < 3; i++) {
+        pid = fork();
+        if (!pid) {
+            break;
+        }
+    }
+
+    int num = 0;
+    if (!pid) {
+        setbuf(stdin, NULL);
+        fscanf(stdin, "%d", &num);
+        fflush(stdout);
+        fprintf(stdout, "%d %d\n", i + 1, num * num);
+        exit(0);
+    } else {
+        wait(NULL), wait(NULL), wait(NULL);
+    }
+    exit(0);
+}

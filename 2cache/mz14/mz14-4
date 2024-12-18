@@ -1,0 +1,82 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <signal.h>
+#include <wait.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+volatile sig_atomic_t n = 0;
+
+FILE *fd[2];
+
+void
+handler(int sig)
+{
+    fflush(stdout);
+    if (sig == SIGUSR1) {
+        // message: "from whom, number";
+        int pid_friend;
+        int i;
+        fread(&pid_friend, sizeof(pid_friend), 1, fd[0]);
+        fflush(fd[0]);
+        fread(&i, sizeof(i), 1, fd[0]);
+        fflush(fd[0]);
+        fflush(stdout);
+        if (i >= n) {
+            kill(pid_friend, SIGKILL);
+            exit(0);
+        }
+        printf("%d %d\n", 2 - i % 2, i);
+        fflush(stdout);
+        i++;
+        int pid = getpid();
+        fwrite(&pid, sizeof(pid), 1, fd[1]);
+        fflush(fd[1]);
+        fwrite(&i, sizeof(i), 1, fd[1]);
+        fflush(fd[1]);
+        kill(pid_friend, SIGUSR1);
+    }
+}
+
+int
+main(int argc, char *argv[])
+{
+    int pip[2];
+    pipe(pip);
+    fd[0] = fdopen(pip[0], "r");
+    fd[1] = fdopen(pip[1], "w");
+    int pid1, pid2;
+    struct sigaction s = {.sa_handler = handler, .sa_flags = SA_RESTART};
+    sigaction(SIGUSR1, &s, NULL);
+    n = (int) strtoll(argv[1], NULL, 10);
+
+    if ((pid1 = fork()) == 0) {
+        while (1) {
+            pause();
+        }
+    } else if ((pid2 = fork()) == 0) {
+        while (1) {
+            pause();
+        }
+    } else {
+        fflush(stdout);
+        fclose(fd[0]);
+        fwrite(&pid2, sizeof(pid2), 1, fd[1]);
+        fflush(fd[1]); //???
+        int k = 1;
+        fwrite(&k, sizeof(k), 1, fd[1]);
+        fflush(fd[1]);
+        fclose(fd[1]);
+        close(pip[1]);
+        close(pip[0]);
+        kill(pid1, SIGUSR1);
+        // close(pip[0]);
+        // close(pip[1]);
+        waitpid(pid1, NULL, 0);
+        waitpid(pid2, NULL, 0);
+        printf("Done\n");
+        fflush(stdout);
+        exit(0);
+    }
+}

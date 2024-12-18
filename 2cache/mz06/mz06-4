@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+
+//made by: 2cache
+
+enum
+{
+    MAX_DEPTH = 4,
+    SYS_BASE = 10,
+};
+
+const char CURR[] = ".";
+const char PARENT[] = "..";
+
+void
+dircursive(const char *path, int Z, int depth, int len_del)
+{
+    if (depth > MAX_DEPTH) {
+        return;
+    }
+
+    DIR *d = opendir(path);
+    if (!d) {
+        exit(1);
+    }
+
+    struct dirent *dd;
+    struct stat st;
+
+    while ((dd = readdir(d)) != 0) {
+        if (!strcmp(dd->d_name, ".") || !strcmp(dd->d_name, "..")) {
+            continue;
+        }
+        char buf[PATH_MAX] = {0};
+        if (snprintf(buf, PATH_MAX, "%s/%s", path, dd->d_name) >= (int) sizeof(buf)) {
+            continue;
+        }
+        if (lstat(buf, &st) == -1) {
+            continue;
+        }
+        if (access(buf, R_OK) == 0) { //???
+            if (S_ISDIR(st.st_mode)) {
+                dircursive(buf, Z, depth + 1, len_del + strlen(dd->d_name) + 1);
+            } else if (st.st_size <= Z && S_ISREG(st.st_mode)) {
+                printf("%s\n", buf + strlen(path) + 1 - len_del);
+            }
+        }
+    }
+
+    closedir(d);
+}
+
+int
+main(int argc, char *argv[])
+{
+
+    char *endptr = NULL;
+    long long Z = strtoll(argv[2], &endptr, SYS_BASE);
+    errno = 0;
+    if (errno || *endptr || endptr == argv[2] || (long long) Z != Z) {
+        fprintf(stderr, "convertation error\n");
+        exit(1);
+    }
+
+    dircursive(argv[1], Z, 1, 0);
+    // standart input write
+}

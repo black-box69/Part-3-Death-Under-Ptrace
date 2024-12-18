@@ -1,0 +1,43 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+
+//made by: 2cache
+
+volatile sig_atomic_t fl = 1;
+
+void
+handler(int sig)
+{
+    if (sig == SIGINT) {
+        fl = 1;
+    } else if (sig == SIGQUIT) {
+        fl = -1;
+    }
+}
+
+int
+main(void)
+{
+    signal(SIGINT, handler);
+    signal(SIGQUIT, handler);
+    int pid = getpid();
+    printf("%d\n", pid);
+    fflush(stdout);
+    int n = 0;
+    long long int res = 0;
+    while (scanf("%d", &n) == 1) {
+        if (fl == 1) {
+            res += n;
+            res = (int) res;
+        } else if (fl == -1) {
+            res *= n;
+            res = (int) res;
+        }
+        printf("%d\n", (int) res);
+        fflush(stdout);
+    }
+
+    return 0;
+}

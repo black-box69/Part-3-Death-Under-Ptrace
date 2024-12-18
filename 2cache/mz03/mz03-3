@@ -1,0 +1,49 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+//made by: 2cache
+
+enum
+{
+    MAX_VALUE = 10000,
+    PERCENT_CONST = 100
+};
+
+int
+main(int argc, char *argv[])
+{
+    if (argc == 1) {
+        fprintf(stderr, "arguments expected\n");
+        exit(1);
+    }
+    char *endptr = NULL;
+
+    double price = strtod(argv[1], &endptr);
+    if (*endptr || endptr == argv[1]) {
+        fprintf(stderr, "converting error\n");
+        exit(1);
+    }
+    price *= MAX_VALUE;
+    double delta = 0;
+    for (int i = 2; i < argc; i++) {
+        char *endptr = NULL;
+        delta = strtod(argv[i], &endptr);
+        if (*endptr || endptr == argv[i]) {
+            fprintf(stderr, "converting error\n");
+            exit(1);
+        }
+        if (delta >= PERCENT_CONST || delta <= -PERCENT_CONST) {
+            fprintf(stderr, "invalid argument\n");
+            exit(1);
+        }
+        delta = price * delta / PERCENT_CONST;
+        price += delta;
+        price = round(price);
+        if (price > MAX_VALUE * MAX_VALUE) {
+            fprintf(stderr, "wrong number\n");
+            exit(1);
+        }
+    }
+    printf("%.4lf\n", price / MAX_VALUE);
+}

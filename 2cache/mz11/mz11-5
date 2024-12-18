@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+//made by: 2cache
+
+int
+main(void)
+{
+    int pid;
+    int n;
+    int fl = getpid();
+    setbuf(stdin, NULL);
+    setbuf(stdout, NULL);
+
+    while ((scanf("%d", &n) != EOF) && ((pid = fork()) == 0)) {
+        fflush(stdin);
+        continue;
+    }
+
+    if (!pid) {
+        _exit(0);
+    } else if (pid == -1) {
+        while (scanf("%d", &n) == 1) {
+            fflush(stdin);
+            continue;
+        }
+        printf("-1\n");
+        fflush(stdout);
+        if (fl == getpid()) {
+            _exit(0);
+        }
+        _exit(1);
+    }
+
+    int res;
+    waitpid(pid, &res, 0);
+    if (WIFEXITED(res) && !WEXITSTATUS(res)) {
+        printf("%d\n", n);
+        fflush(stdout);
+        _exit(0);
+    } else if (WIFEXITED(res) && WEXITSTATUS(res)) {
+        if (fl == getpid()) {
+            _exit(0);
+        }
+        _exit(1);
+    }
+}

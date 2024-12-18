@@ -1,0 +1,49 @@
+include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
+
+//made by: dead bit
+
+enum
+{
+    FIRST_GROUP_OFFSET = 20,
+    SECOND_GROUP_OFFSET = 12,
+    THIRD_GROUP_OFFSET = 8,
+    FIRST_GROUP_MASK = 0x00f00000,
+    SECOND_GROUP_MASK = 0x000ff000,
+    THIRD_GROUP_MASK = 0x00000f00,
+    FOURTH_GROUP_MASK = 0x000000ff,
+};
+
+int
+main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        fprintf(stderr, "not enough args\n");
+        exit(1);
+    }
+    errno = 0;
+    int f = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    if (errno || f == -1) {
+        fprintf(stderr, "opening file error\n");
+        exit(1);
+    }
+    unsigned n;
+    while (fscanf(stdin, "%u", &n) == 1) {
+        unsigned char buf[4] = {0};
+        buf[0] = (n & FIRST_GROUP_MASK) >> FIRST_GROUP_OFFSET;
+        buf[1] = (n & SECOND_GROUP_MASK) >> SECOND_GROUP_OFFSET;
+        buf[2] = (n & THIRD_GROUP_MASK) >> THIRD_GROUP_OFFSET;
+        buf[3] = (n & FOURTH_GROUP_MASK);
+        if (write(f, buf, sizeof(buf)) == -1) {
+            fprintf(stderr, "no data\n");
+            exit(1);
+        }
+    }
+    if (close(f) == -1) {
+        fprintf(stderr, "no file to close\n");
+        exit(1);
+    }
+}

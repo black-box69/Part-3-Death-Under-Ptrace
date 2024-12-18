@@ -1,0 +1,70 @@
+#include <stdio.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <limits.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+//made by: 2cache
+
+int
+main(int argc, char *argv[])
+{
+    if (argc < 3) {
+        fprintf(stderr, "few args\n");
+        exit(1);
+    }
+
+    DIR *d1 = opendir(argv[1]);
+    if (!d1) {
+        exit(1);
+    }
+    DIR *d2 = opendir(argv[2]);
+    if (!d2) {
+        closedir(d1);
+        exit(1);
+    }
+    long start_d2 = telldir(d2);
+
+    struct dirent *dd1;
+    struct dirent *dd2;
+
+    unsigned long long size = 0;
+
+    char path2[PATH_MAX] = {0};
+    char path1[PATH_MAX] = {0};
+
+    struct stat stb1;
+    struct stat stb2;
+    while ((dd1 = readdir(d1)) != 0) {
+        if (!strcmp(dd1->d_name, ".") || !strcmp(dd1->d_name, "..")) {
+            continue;
+        }
+        snprintf(path1, sizeof(path1), "%s/%s", argv[1], dd1->d_name);
+        if (lstat(path1, &stb1) < 0) {
+            continue;
+        }
+        if (S_ISREG(stb1.st_mode) && !access(path1, W_OK)) {
+            seekdir(d2, start_d2);
+            while ((dd2 = readdir(d2)) != 0) {
+                snprintf(path2, sizeof(path2), "%s/%s", argv[2], dd2->d_name);
+                if (stat(path2, &stb2) < 0) {
+                    continue;
+                }
+                if (!strcmp(dd2->d_name, dd1->d_name) && stb1.st_ino == stb2.st_ino) {
+                    size += stb1.st_size;
+                }
+            }
+        }
+    }
+
+    if (closedir(d1) == -1) {
+        fprintf(stderr, "dir closing err\n");
+    }
+    if (closedir(d2) == -1) {
+        fprintf(stderr, "fir closing err\n");
+    }
+    printf("%llu\n", size);
+}

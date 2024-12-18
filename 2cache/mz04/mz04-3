@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+//made by: 2cache
+
+int
+main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        fprintf(stderr, "not enough args\n");
+        exit(1);
+    }
+    int file = open(argv[1], O_RDWR, 0600);
+    if (file == -1) {
+        fprintf(stderr, "file opening error\n");
+        exit(1);
+    }
+    long long min = LLONG_MAX;
+    ssize_t flag = 0;
+    off_t found = 0;
+    long long buf = 0;
+    int iteration = 1;
+    while ((flag = read(file, &buf, sizeof(buf))) != 0) {
+        if (flag == -1) {
+            fprintf(stderr, "num reading error\n");
+            exit(1);
+        }
+        if (buf < min || iteration == 1) {
+            min = buf;
+            found = iteration * sizeof(buf);
+        }
+        iteration++;
+    }
+    if (found) {
+        if (lseek(file, found - sizeof(min), SEEK_SET) == -1) {
+            fprintf(stderr, "can't seek in file\n");
+            exit(1);
+        }
+        min = -((unsigned long long) min);
+        if (write(file, &min, sizeof(min)) == -1) {
+            fprintf(stderr, "file writing error\n");
+            exit(1);
+        }
+    }
+    close(file);
+}

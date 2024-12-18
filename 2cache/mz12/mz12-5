@@ -1,0 +1,106 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <limits.h>
+
+//made by: 2cache
+
+const char *default_dir = "/tmp";
+const char *XDG = "XDG_RUNTIME_DIR";
+const char *TMPDIR = "TMPDIR";
+const char *black_box = "/dev/urandom"; //???
+
+extern char **environ;
+int
+main(int argc, char *argv[])
+{
+
+    if (argc < 2) {
+        fprintf(stderr, "not enough args\n");
+        exit(1);
+    }
+
+    // argc = 2;
+    // argv[1] = "x>5?reject:summon";
+
+    char *tmp_route = getenv(XDG);
+    if (tmp_route == NULL || access(tmp_route, W_OK)) {
+        tmp_route = getenv(TMPDIR);
+        if (tmp_route == NULL || access(tmp_route, W_OK)) {
+            tmp_route = strdup(default_dir);
+        }
+    }
+
+    char script_path[PATH_MAX] = "";
+    char obj_path[PATH_MAX] = "";
+    int rand_fd = open(black_box, O_RDONLY);
+
+    if (rand_fd == -1) {
+        fprintf(stderr, "can't open random file\n");
+        exit(1);
+    }
+
+    unsigned rand_int;
+    if (read(rand_fd, &rand_int, sizeof(rand_int)) == -1) {
+        fprintf(stderr, "can't read from file\n");
+        exit(1);
+    }
+
+    if (snprintf(script_path, sizeof(script_path), "%s/%uget_pwned.c", tmp_route, rand_int) < 0) {
+        fprintf(stderr, "error occured while name generating\n");
+        exit(1);
+    }
+
+    if (read(rand_fd, &rand_int, sizeof(rand_int)) == -1) {
+        fprintf(stderr, "can't read from file\n");
+        exit(1);
+    }
+
+    if (snprintf(obj_path, sizeof(obj_path), "%s/%uu_r_already_pwned", tmp_route, rand_int) < 0) {
+        fprintf(stderr, "error occured while name generating\n");
+        exit(1);
+    }
+
+    int fd = open(script_path, O_WRONLY | O_CREAT, 0700);
+    if (fd == -1) {
+        fprintf(stderr, "can't open new file\n");
+        exit(1);
+    }
+    FILE *f = fdopen(fd, "w");
+    if (f == NULL) {
+        fprintf(stderr, "can't open file\n");
+        exit(1);
+    }
+
+    fprintf(f,
+            "#include <unistd.h>\n#include <stdio.h>\n#include <stdlib.h>\nint main(void){\nconst char "
+            "summon[]=\"summon\\n\";\nconst char disqualify[]=\"disqualify\\n\";\nconst char "
+            "reject[]=\"reject\\n\";\nint x=0;\nwhile(scanf(\"%%d\", &x) == 1){\nprintf(\"%%s\", "
+            "(%s));\nfflush(stdout);\n};\nexeclp(\"rm\", \"rm\", \"%s\", \"%s\", NULL);\nexit(1);\n}\n",
+            argv[1], obj_path, script_path);
+    if (fclose(f) == EOF) {
+        fprintf(stderr, "error closing of flie\n");
+        exit(1);
+    }
+
+    int pid = fork();
+    if (pid == -1) {
+        fprintf(stderr, "process was not created\n");
+        exit(1);
+    }
+
+    if (!pid) {
+        execlp("gcc", "gcc", script_path, "-o", obj_path, NULL);
+        fprintf(stderr, "program was not compiled\n");
+        exit(1);
+    }
+    int res;
+    wait(&res);
+    execl(obj_path, obj_path, NULL);
+    exit(1);
+}

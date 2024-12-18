@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+
+//made by: 2cache
+
+enum
+{
+    ERR_CODE = 42,
+    IN = STDIN_FILENO,
+    OUT = STDOUT_FILENO,
+    ERR = STDERR_FILENO,
+};
+
+int
+main(int argc, char *argv[])
+{
+    if (argc != 5) {
+        return 1;
+    }
+    int pid = fork();
+    if (pid == -1) {
+        return ERR_CODE;
+    }
+
+    if (!pid) {
+        int f1 = open(argv[2], O_RDONLY, 0660);
+        if (f1 == -1) {
+            _exit(ERR_CODE);
+        }
+        int f2 = open(argv[3], O_WRONLY | O_CREAT | O_APPEND, 0660);
+        if (f2 == -1) {
+            _exit(ERR_CODE);
+        }
+        int f3 = open(argv[4], O_WRONLY | O_CREAT | O_TRUNC, 0660);
+        if (f3 == -1) {
+            _exit(ERR_CODE);
+        }
+
+        if (dup2(f1, IN) == -1) {
+            _exit(ERR_CODE);
+        }
+        if (dup2(f2, OUT) == -1) {
+            _exit(ERR_CODE);
+        }
+        if (dup2(f3, ERR) == -1) {
+            _exit(ERR_CODE);
+        }
+        close(f1);
+        close(f2);
+        close(f3);
+        execlp(argv[1], argv[1], NULL);
+        _exit(ERR_CODE);
+    } else {
+        int res = 0;
+        waitpid(pid, &res, 0);
+        printf("%d\n", res);
+        return 0;
+    }
+    return 0;
+}

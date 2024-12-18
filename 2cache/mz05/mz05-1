@@ -1,0 +1,30 @@
+#include <stdio.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+enum
+{
+    KIB = 1024,
+};
+
+int
+main(int argc, char *argv[])
+{
+    if (argc <= 1) {
+        fprintf(stderr, "no filename\n");
+    }
+    struct stat stb;
+    unsigned long long sum = 0;
+    for (int i = 1; i < argc; i++) {
+        if (lstat(argv[i], &stb) < 0) {
+            fprintf(stderr, "can't open file\n");
+            continue;
+        }
+        if ((stb.st_size % KIB == 0) && S_ISREG(stb.st_mode) && (stb.st_nlink == 1) && !(S_ISLNK(stb.st_mode))) {
+            sum += stb.st_size;
+        }
+    }
+    fprintf(stdout, "%llu\n", sum);
+}

@@ -1,0 +1,16 @@
+//made by: 2cache
+
+STYPE
+bit_reverse(STYPE value)
+{
+    UTYPE res = 0;
+    UTYPE buf = ~0;
+    UTYPE val_u = (UTYPE) value;
+    while (buf) {
+        res <<= 1;
+        res ^= (val_u & 1);
+        val_u >>= 1;
+        buf <<= 1;
+    }
+    return (STYPE) res;
+}

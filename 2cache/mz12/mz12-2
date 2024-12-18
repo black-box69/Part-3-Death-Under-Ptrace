@@ -1,0 +1,43 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+
+//made by: 2cache
+
+enum
+{
+    ERROR_CODE = 1,
+    SUCCESS = 0,
+};
+
+int
+execution(char *command)
+{
+    int pid = fork();
+    if (pid == -1) {
+        _exit(1);
+    }
+    if (!pid) {
+        execlp(command, command, NULL);
+        _exit(1);
+    } else {
+        int res;
+        waitpid(pid, &res, 0);
+        return (WIFEXITED(res) && !WEXITSTATUS(res));
+    }
+    return 0;
+}
+
+int
+main(int argc, char *argv[])
+{
+
+    if (argc != 4) {
+        exit(ERROR_CODE);
+    }
+    return !((execution(argv[1]) || execution(argv[2])) && execution(argv[3]));
+}

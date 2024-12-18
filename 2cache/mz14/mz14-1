@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+//made by: 2cache
+
+volatile sig_atomic_t n = 0;
+
+void
+handler(int s)
+{
+    if (n < 5) {
+        printf("%d\n", n);
+        fflush(stdout);
+    }
+    if (++n == 6) {
+        exit(0);
+    }
+}
+
+int
+main(void)
+{
+    struct sigaction s = {.sa_handler = handler, .sa_flags = SA_RESTART};
+    sigaction(SIGHUP, &s, NULL);
+    int pid = getpid();
+    printf("%d\n", pid);
+    fflush(stdout);
+    while (1) {
+        pause();
+    }
+    return 0;
+}
